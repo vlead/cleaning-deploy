@@ -1,0 +1,671 @@
+#+Title:  Ensure availability of labs running from IIIT infrastructure
+#+Author: VLEAD
+#+Date:   [2015-04-10 Fri]
+
+* Problem
+  At present, the hosting platfrom of labs is not from a single location.  Also,
+  some of the labs are hosted from multiple places.  VLEAD has the task of
+  hosting all the labs to a single platfrom - AWS cloud.  Before VLEAD moves all
+  the labs to cloud, the labs should be available to the general public.
+  
+  http://vlab.co.in is the landing page that is used by outreach.  This page
+  has links to the labs that are hosted from multiple places.  Some of the
+  links from this page point to labs hosted on IIIT infrastructure.
+  
+  A majority of the labs hosted on IIIT infrastructure are running from a
+  single container though some labs are deployed on individual containers.  If
+  there is problem - memory leak, process spawning etc., - with a single lab on
+  the deploy container, other labs also get affected and availability is
+  compromised.
+
+* Objective
+  The purpose of this exercise is to:
+
+  1. Create a clear picture of IIIT infrastructure vis a vis hosting of labs.
+
+  2. Ensure there is always only one version of lab running in production,
+     which is reachable from vlab.co.in.
+
+  3. Ensure each lab runs from one container.
+
+  4. Decommission deploy container on base2 which is currently running multiple
+     labs. 
+
+  5. Make http://vlab.co.in the unique and official landing page of virtual
+     labs.  Decomission http://virtual-labs.ac.in or make it point to
+     http://vlab.co.in. 
+
+* Labs on IIIT Infrastructure
+** An overview of relationship of all virtual labs and labs on IIIT infrastructure
+   #+CAPTION:  Venn Diagram
+   #+LABEL:  venn-diagram
+   #+NAME: fig-venn-diagram 
+   [[./venn-diag.jpg]]
+** Definitions
+  + deploy  :: the container running labs and other stuff
+ 
+  + iiit infrastructure :: deploy plus other machines/containers.  
+
+  + set A       ::  Things running on the IIIT infrastructure.
+
+  + set B       ::  Labs listed on vlab.co.in.
+
+  + Partition 1 :: Labs deployed on IIIT infrastructure and pointed to by
+                   vlab.co.in and =NOT= at L5.
+
+  + Partition 2 :: Labs deployed on IIIT infrastructure and pointed to by
+                   vlab.co.in and at L5.
+
+  + Partition 5 :: Labs deployed on IIIT infrastructure and =NOT= pointed to by
+                   vlab.co.in and =NOT= at L5.
+
+  + Partition 6 :: Labs deployed on IIIT infrastructure and =NOT= pointed to by
+                   vlab.co.in and at L5.
+
+  + Partition 4 :: Neither pointed to by vlab.co.in nor by
+                   virtual-labs.ac.in.  Note that whether this labs
+                   are working or not is not a factor to consider
+                   while treating them as part of partition 4.
+
+  + Partition 3 :: Labs pointed by vlab.co.in and =NOT= deployed on IIIT
+                   infrastructure but at L5.
+
+  + Partition 7 :: Labs pointed by vlab.co.in and =NOT= deployed on IIIT
+                   infrastructure and =NOT= at L5.
+
+** Enumerating all the labs on IIIT infrastructure into partitions 
+*** Partition 1: Labs deployed on IIIT infrastructure and pointed to by vlab.co.in and =NOT= at L5
+
+    This table defines partition 1 and total labs are 26. 
+
+    |---------+------------------------+-----------+-------------+-------------+---------+-----------|
+    | Lab ID  | Lab Name               | Institute | URL         | URL on      | Uses    | Remarks   |
+    |         |                        |           | on IIIT     | vlab.co.in  | LDAP/DB |           |
+    |         |                        |           | Infra       |             |         |           |
+    |---------+------------------------+-----------+-------------+-------------+---------+-----------|
+    | cse04   | Problem                | IIIT-H    | [[http://deploy.virtual-labs.ac.in/labs/cse04/index.php][Working url]] | [[http://deploy.virtual-labs.ac.in/labs/cse04/index.php][Working url]] |         | identical |
+    |         | Solving                |           |             |             |         | urls      |
+    |---------+------------------------+-----------+-------------+-------------+---------+-----------|
+    | cse06   | Data Mining            | IIIT-H    | [[http://sage.virtual-labs.ac.in/home/pub/0/][working url]] | [[http://sage.virtual-labs.ac.in/home/pub/0/][working url]] | sage    | identical |
+    |         |                        |           |             |             |         | urls      |
+    |---------+------------------------+-----------+-------------+-------------+---------+-----------|
+    | cse07   | Databases              | IIIT-H    | [[http://sage.virtual-labs.ac.in/home/pub/1/][working url]] | [[http://sage.virtual-labs.ac.in/home/pub/1/][working url]] | sage    | identical |
+    |         |                        |           |             |             |         | urls      |
+    |---------+------------------------+-----------+-------------+-------------+---------+-----------|
+    | cse09   | Linux Lab              | IIIT-H    | [[http://deploy.virtual-labs.ac.in/labs/cse09/][working url]] | [[http://deploy.virtual-labs.ac.in/labs/cse09/][working url]] | LDAP    | identical |
+    |         |                        |           |             |             |         | urls      |
+    |---------+------------------------+-----------+-------------+-------------+---------+-----------|
+    | cse05   | Principles of          | IIIT-H    | [[http://deploy.virtual-labs.ac.in/labs/cse05/][working url]] | [[http://deploy.virtual-labs.ac.in/labs/cse05/][working url]] | LDAP    | identical |
+    |         | Programming            |           |             |             |         | urls      |
+    |         | Languages              |           |             |             |         |           |
+    |---------+------------------------+-----------+-------------+-------------+---------+-----------|
+    | cse13   | Advanced VLSI          | IIIT-H    | [[http://deploy.virtual-labs.ac.in/labs/cse13/index.php][working url]] | [[http://deploy.virtual-labs.ac.in/labs/cse13/index.php][working url]] |         | identical |
+    |         |                        |           |             |             |         | urls      |
+    |---------+------------------------+-----------+-------------+-------------+---------+-----------|
+    | cse16   | Speech Signal          | IIIT-H    | [[http://deploy.virtual-labs.ac.in/labs/cse16/index.html][working url]] | [[http://deploy.virtual-labs.ac.in/labs/cse16/index.html][working url]] |         | identical |
+    |         | Processing             |           |             |             |         | urls      |
+    |         | (IIIT-H)               |           |             |             |         |           |
+    |---------+------------------------+-----------+-------------+-------------+---------+-----------|
+    | cse17   | Mobile Robotics        | IIIT-H    | [[http://deploy.virtual-labs.ac.in/labs/cse17/index.php][working url]] | [[http://deploy.virtual-labs.ac.in/labs/cse17/index.php][working url]] |         | identical |
+    |         |                        |           |             |             |         | urls      |
+    |---------+------------------------+-----------+-------------+-------------+---------+-----------|
+    | cse21   | Optical Remote         | IIIT-H    | [[http://deploy.virtual-labs.ac.in/labs/cse21/][working url]] | [[http://deploy.virtual-labs.ac.in/labs/cse21/index.php][working url]] |         | identical |
+    |         | Sensing                |           |             |             |         | urls      |
+    |---------+------------------------+-----------+-------------+-------------+---------+-----------|
+    | cse24   | Natural Language       | IIIT-H    | [[http://deploy.virtual-labs.ac.in/labs/cse24/][working url]] | [[http://deploy.virtual-labs.ac.in/labs/cse24/][working url]] |         | identical |
+    |         | Processing             |           |             |             |         | urls      |
+    |---------+------------------------+-----------+-------------+-------------+---------+-----------|
+    | cse30   | Analog CMOS VLSI       | IIIT-H    | [[http://deploy.virtual-labs.ac.in/labs/cse30/index.php][working url]] | [[http://deploy.virtual-labs.ac.in/labs/cse30/index.php][working url]] |         | identical |
+    |         | Circuit Design         |           |             |             |         | urls      |
+    |---------+------------------------+-----------+-------------+-------------+---------+-----------|
+    | eerc02  | Soil Mechanics         | IIIT-H    | [[http://deploy.virtual-labs.ac.in/labs/eerc02/][working url]] | [[http://deploy.virtual-labs.ac.in/labs/eerc02/][working url]] |         | identical |
+    |         |                        |           |             |             |         | urls      |
+    |---------+------------------------+-----------+-------------+-------------+---------+-----------|
+    | eerc04  | Basic Structural       | IIIT-H    | [[http://deploy.virtual-labs.ac.in/labs/eerc04/][working url]] | [[http://deploy.virtual-labs.ac.in/labs/eerc04/][working url]] |         | identical |
+    |         | Analysis               |           |             |             |         | urls      |
+    |---------+------------------------+-----------+-------------+-------------+---------+-----------|
+    | eerc05  | Geotechnical           | IIIT-H    | [[http://deploy.virtual-labs.ac.in/labs/eerc05/index.html][working url]] | [[http://deploy.virtual-labs.ac.in/labs/eerc05/index.html][working url]] |         | identical |
+    |         | Engineering Lab        |           |             |             |         | urls      |
+    |---------+------------------------+-----------+-------------+-------------+---------+-----------|
+    | cse23   | Computational          | IIIT-H    | [[http://virtual-labs.ac.in/labs/cse23/][working url]] | [[http://virtual-labs.ac.in/labs/cse23/][working url]] |         | identical |
+    |         | Linguistics            |           |             |             |         | urls      |
+    |---------+------------------------+-----------+-------------+-------------+---------+-----------|
+    | cse10   | Computer               | IIT-      | [[http://virtual-labs.ac.in/labs/cse10/][working url]] | [[http://virtual-labs.ac.in/labs/cse10/][working url]] |         | identical |
+    |         | Organization and       | Kharagpur |             |             |         | urls      |
+    |         | Architecture           |           |             |             |         |           |
+    |---------+------------------------+-----------+-------------+-------------+---------+-----------|
+    | civil13 | Urban Transportation   | IIT-      | [[http://deploy.virtual-labs.ac.in/labs/civil13/][working url]] | [[http://deploy.virtual-labs.ac.in/labs/civil13/][working url]] | mysql   | identical |
+    |         | Systems Planning       | Bombay    |             |             |         | urls      |
+    |---------+------------------------+-----------+-------------+-------------+---------+-----------|
+    | ccnsb01 | Molecular Fluorescence | IIIT-H    | [[http://deploy.virtual-labs.ac.in/labs/ccnsb01/index.html][working url]] | [[http://deploy.virtual-labs.ac.in/labs/ccnsb01][working url]] |         | identical |
+    |         | Spectroscopy           |           |             |             |         | urls      |
+    |---------+------------------------+-----------+-------------+-------------+---------+-----------|
+    | ccnsb02 | Colloid and Surface    | IIIT-H    | [[http://deploy.virtual-labs.ac.in/labs/ccnsb02/index.html][working url]] | [[http://deploy.virtual-labs.ac.in/labs/ccnsb02][working url]] |         | identical |
+    |         | Chemistry              |           |             |             |         | urls      |
+    |---------+------------------------+-----------+-------------+-------------+---------+-----------|
+    | ccnsb03 | Molecular Absorption   | IIIT-H    | [[http://deploy.virtual-labs.ac.in/labs/ccnsb03/index.html][working url]] | [[http://deploy.virtual-labs.ac.in/labs/ccnsb03][working url]] |         | identical |
+    |         | Spectroscopy           |           |             |             |         | urls      |
+    |---------+------------------------+-----------+-------------+-------------+---------+-----------|
+    | ccnsb04 | Quantum Chemistry      | IIIT-H    | [[http://deploy.virtual-labs.ac.in/labs/ccnsb04/index.html][working url]] | [[http://deploy.virtual-labs.ac.in/labs/ccnsb04][working url]] |         | identical |
+    |         |                        |           |             |             |         | urls      |
+    |---------+------------------------+-----------+-------------+-------------+---------+-----------|
+    | ccnsb05 | Circular Dichroism     | IIIT-H    | [[http://deploy.virtual-labs.ac.in/labs/ccnsb05/index.html][working url]] | [[http://deploy.virtual-labs.ac.in/labs/ccnsb05][working url]] |         | identical |
+    |         | Spectroscopy           |           |             |             |         | urls      |
+    |---------+------------------------+-----------+-------------+-------------+---------+-----------|
+    | ccnsb07 | Molecular              | IIIT-H    | [[http://deploy.virtual-labs.ac.in/labs/ccnsb07/index.html][working url]] | [[http://deploy.virtual-labs.ac.in/labs/ccnsb07/index.html][working url]] |         | identical |
+    |         | Interactions           |           |             |             |         | urls      |
+    |---------+------------------------+-----------+-------------+-------------+---------+-----------|
+    | cse28   | Advanced Network       | IIT-      | [[http://virtual-labs.ac.in/cse28/][broken url]]  | [[http://virtual-labs.ac.in/cse28/][broken url]]  | mysql   |           |
+    |         | Technologies           | Kharagpur |             |             |         |           |
+    |         |                        |           |             |             |         |           |
+    |---------+------------------------+-----------+-------------+-------------+---------+-----------|
+    | cse08   | Software               | IIT-      | [[http://virtual-labs.ac.in/cse08/][broken url]]  | [[http://virtual-labs.ac.in/cse08/][broken url]]  | mysql   |           |
+    |         | Engineering            | Kharagpur |             |             |         |           |
+    |---------+------------------------+-----------+-------------+-------------+---------+-----------|
+    | civil11 | Virtual Satellite      | IIT-      | [[http://civil11.virtual-labs.ac.in/siplabs/][broken url]]  | [[http://civil11.virtual-labs.ac.in/siplabs/][broken url]]  |         |           |
+    |         | Image Processing and   | Bombay    |             |             |         |           |
+    |         | Analysis               |           |             |             |         |           |
+    |---------+------------------------+-----------+-------------+-------------+---------+-----------|
+
+*** Partition 2: Labs deployed on IIIT infrastructure and pointed to by vlab.co.in and at L5
+
+    This table defines partition 2 and total labs are 15.
+
+    |---------+-------------------+------------+---------------+-------------------+---------+---|
+    | Lab ID  | Lab Name          | Institute  | URL on deploy | URL on vlab.co.in | Uses    |   |
+    |         |                   |            |               |                   | LDAP/DB |   |
+    |---------+-------------------+------------+---------------+-------------------+---------+---|
+    | cse01   | Data Structures   | IIIT-H     | [[http://deploy.virtual-labs.ac.in/labs/cse01][working url]]   | [[http://deploy.virtual-labs.ac.in/labs/cse01][working url]]       |         |   |
+    |---------+-------------------+------------+---------------+-------------------+---------+---|
+    | cse02   | Computer          | IIIT-H     | [[http://virtual-labs.ac.in/labs/cse02/][broken url]]    | [[http://virtual-labs.ac.in/labs/cse02/][broken url]]        |         |   |
+    |         | Programming       |            |               |                   |         |   |
+    |---------+-------------------+------------+---------------+-------------------+---------+---|
+    | ccnsb06 | Physical          | IIIT-H     | [[http://deploy.virtual-labs.ac.in/labs/ccnsb06/index.html][working url]]   | [[http://deploy.virtual-labs.ac.in/labs/ccnsb06/index.html][working url]]       |         |   |
+    |         | Chemistry         |            |               |                   |         |   |
+    |---------+-------------------+------------+---------------+-------------------+---------+---|
+    | eerc01  | Basic Engineering | IIIT-H     | [[http://deploy.virtual-labs.ac.in/labs/eerc01/][working url]]   | [[http://deploy.virtual-labs.ac.in/labs/eerc01/][working url]]       |         |   |
+    |         | Mechanics and     |            |               |                   |         |   |
+    |         | Strength of       |            |               |                   |         |   |
+    |         | Materials         |            |               |                   |         |   |
+    |---------+-------------------+------------+---------------+-------------------+---------+---|
+    | eerc03  | Hydraulics and    | IIIT-H     | [[http://deploy.virtual-labs.ac.in/labs/eerc03/][working url]]   | [[http://deploy.virtual-labs.ac.in/labs/eerc03/][working url]]       |         |   |
+    |         | Fluid Mechanics   |            |               |                   |         |   |
+    |---------+-------------------+------------+---------------+-------------------+---------+---|
+    | emt     | Electro           | IIIT-H     | [[http://deploy.virtual-labs.ac.in/labs/emt/][working url]]   | [[http://deploy.virtual-labs.ac.in/labs/emt/][working url]]       | mysql   |   |
+    |         | Magnetic Theory   |            |               |                   |         |   |
+    |---------+-------------------+------------+---------------+-------------------+---------+---|
+    | cse29   | Cryptography      | IIIT-H     | [[http://deploy.virtual-labs.ac.in/labs/cse29/index.php][working url]]   | [[http://deploy.virtual-labs.ac.in/labs/cse29/index.php][working url]]       |         |   |
+    |---------+-------------------+------------+---------------+-------------------+---------+---|
+    | cse18   | Computer          | IIIT-H     | [[http://deploy.virtual-labs.ac.in/labs/cse18/index.php][working url]]   | [[http://deploy.virtual-labs.ac.in/labs/cse18/index.php][working url]]       |         |   |
+    |         | Graphics          |            |               |                   |         |   |
+    |---------+-------------------+------------+---------------+-------------------+---------+---|
+    | cse19   | Image             | IIIT-H     | [[http://deploy.virtual-labs.ac.in/labs/cse19/index.php][working url]]   | [[http://deploy.virtual-labs.ac.in/labs/cse19/index.php][working url]]       |         |   |
+    |         | Processing        |            |               |                   |         |   |
+    |---------+-------------------+------------+---------------+-------------------+---------+---|
+    | cse20   | Pattern           | IIIT-H     | [[http://deploy.virtual-labs.ac.in/labs/cse20/index.php][working url]]   | [[http://deploy.virtual-labs.ac.in/labs/cse20/index.php][working url]]       |         |   |
+    |         | Recognition       |            |               |                   |         |   |
+    |---------+-------------------+------------+---------------+-------------------+---------+---|
+    | cse22   | Artificial        | IIIT-H     | [[http://deploy.virtual-labs.ac.in/labs/cse22/index.html][working url]]   | [[http://deploy.virtual-labs.ac.in/labs/cse22/index.html][working url]]       |         |   |
+    |         | Neural Networks   |            |               |                   |         |   |
+    |---------+-------------------+------------+---------------+-------------------+---------+---|
+    | cse14   | VLSI              | IIIT-H     | [[http://deploy.virtual-labs.ac.in/labs/cse14/index.php][working url]]   | [[http://deploy.virtual-labs.ac.in/labs/cse14/index.php][working url]]       |         |   |
+    |---------+-------------------+------------+---------------+-------------------+---------+---|
+    | cse15   | Digital           | IIIT-H     | [[http://deploy.virtual-labs.ac.in/labs/cse15/index.php][working url]]   | [[http://deploy.virtual-labs.ac.in/labs/cse15/index.php][working url]]       |         |   |
+    |         | Logic Design      |            |               |                   |         |   |
+    |---------+-------------------+------------+---------------+-------------------+---------+---|
+    | cse11   | Computer          | IIIT-H     | [[http://deploy.virtual-labs.ac.in/labs/cse11/index.php][working url]]   | [[http://deploy.virtual-labs.ac.in/labs/cse11/][working url]]       |         |   |
+    |         | Organization      |            |               |                   |         |   |
+    |---------+-------------------+------------+---------------+-------------------+---------+---|
+    |         |                   |            |               |                   |         |   |
+    |         |                   |            |               |                   |         |   |
+    |---------+-------------------+------------+---------------+-------------------+---------+---|
+    | phy01   | Virtual           | IIT-Kanpur | [[http://deploy.virtual-labs.ac.in/labs/phy01/][working url]]   | [[http://deploy.virtual-labs.ac.in/labs/phy01/][working url]]       |         |   |
+    |         | Astrophysics      |            |               |                   |         |   |
+    |         | Lab               |            |               |                   |         |   |
+    |---------+-------------------+------------+---------------+-------------------+---------+---|
+
+*** Partition 5: Labs deployed on IIIT infrastructure and =NOT= pointed to by vlab.co.in(to IIIT infrastructure) and =NOT= at L5
+    This table defines partition 5 and total labs are 30.
+
+    |---------+--------------------------+------------+---------------+-------------------+---------|
+    | Lab ID  | Lab Name                 | Institute  | URL on deploy | URL on vlab.co.in | Uses    |
+    |         |                          |            |               |                   | LDAP/DB |
+    |---------+--------------------------+------------+---------------+-------------------+---------|
+    | mech17  | Micromachining           | COEP       | [[http://deploy.virtual-labs.ac.in/labs/mech17/#][working url]]   | [[http://coep.vlab.co.in/?sub%3D34&brch%3D105][working url]]       |         |
+    |         | laboratory               |            |               |                   |         |
+    |---------+--------------------------+------------+---------------+-------------------+---------|
+    | mech18  | FAB laboratory           | COEP       | [[http://deploy.virtual-labs.ac.in/labs/mech18/#][working url]]   | [[http://coep.vlab.co.in/?sub%3D34&brch%3D106][working url]]       |         |
+    |---------+--------------------------+------------+---------------+-------------------+---------|
+    | mech04  | Vibration and            | COEP       | [[http://deploy.virtual-labs.ac.in/labs/mech04/#][working url]]   | [[http://coep.vlab.co.in/?sub%3D34&brch%3D101][working url]]       |         |
+    |         | acoustics lab            |            |               |                   |         |
+    |---------+--------------------------+------------+---------------+-------------------+---------|
+    | hss01   | Creative Design,         | IIT-G      | [[http://deploy.virtual-labs.ac.in/labs/hss01/#][working url]]   | [[http://iitg.vlab.co.in/?sub%3D72&brch%3D170][working url]]       |         |
+    |         | Prototyping              |            |               |                   |         |
+    |         | & Experiential           |            |               |                   |         |
+    |         | Simulation Lab           |            |               |                   |         |
+    |---------+--------------------------+------------+---------------+-------------------+---------|
+    | hss02   | Virtual English          | IIT-G      | [[http://deploy.virtual-labs.ac.in/labs/hss02/#][working url]]   | [[http://iitg.vlab.co.in/?sub%3D72&brch%3D172][working url]]       |         |
+    |         | and Communication        |            |               |                   |         |
+    |---------+--------------------------+------------+---------------+-------------------+---------|
+    | hss03   | Virtual                  | IIT-G      | [[http://deploy.virtual-labs.ac.in/labs/hss03/#][working url]]   | [[http://iitg.vlab.co.in/?sub%3D72&brch%3D173][working url]]       |         |
+    |         | Anthropology Lab         |            |               |                   |         |
+    |---------+--------------------------+------------+---------------+-------------------+---------|
+    | eee12   | Programmable             | COEP       | [[http://deploy.virtual-labs.ac.in/labs/eee12/][working url]]   | [[http://coep.vlab.co.in/?sub%3D33&brch%3D97][working url]]       |         |
+    |         | Logic Controller lab     |            |               |                   |         |
+    |---------+--------------------------+------------+---------------+-------------------+---------|
+    | ece01   | Speech Signal            | IIT-G      | [[http://deploy.virtual-labs.ac.in/labs/ece01/][working url]]   | [[http://iitg.vlab.co.in/?sub%3D59&brch%3D164][working url]]       |         |
+    |         | Processing Lab           |            |               |                   |         |
+    |---------+--------------------------+------------+---------------+-------------------+---------|
+    | ece03   | Transducers and          | IIT-Kanpur | [[http://deploy.virtual-labs.ac.in/labs/ece03/][working url]]   | [[http://202.3.77.143/virtuallab/][working url]]       | mysql   |
+    |         | Instrumentation          |            |               |                   |         |
+    |         | Virtual lab              |            |               |                   |         |
+    |---------+--------------------------+------------+---------------+-------------------+---------|
+    |         |                          |            |               |                   |         |
+    | ece08   | Engineering              | IIT-D      | [[http://deploy.virtual-labs.ac.in/labs/ece08/][working url]]   | [[http://iitd.vlab.co.in/?sub%3D65&brch%3D180][working url]]       |         |
+    |         | Electro-magnetics        |            |               |                   |         |
+    |         | Laboratory               |            |               |                   |         |
+    |---------+--------------------------+------------+---------------+-------------------+---------|
+    | ece10   | Signals and              | IIT-G      | [[http://deploy.virtual-labs.ac.in/labs/ece10/][working url]]   | [[http://iitg.vlab.co.in/?sub%3D59&brch%3D166][working url]]       |         |
+    |         | Systems Laboratory       |            |               |                   |         |
+    |---------+--------------------------+------------+---------------+-------------------+---------|
+    | ece18   | RF and Microwave         | IIT-K      | [[http://deploy.virtual-labs.ac.in/labs/ece18/][working url]]   | [[http://www.iitk.ac.in/mimt_lab/vlab/index.php][working url]]       |         |
+    |         | Characterization Lab     |            |               |                   |         |
+    |---------+--------------------------+------------+---------------+-------------------+---------|
+    | ece21   | Queuing Networks         | IIT-D      | [[http://deploy.virtual-labs.ac.in/labs/ece21/][working url]]   | [[http://iitd.vlab.co.in/?sub%3D65&brch%3D182][working url]]       |         |
+    |         | Modelling Lab            |            |               |                   |         |
+    |---------+--------------------------+------------+---------------+-------------------+---------|
+    | cse12   | FPGA & Embedded          | COEP       | [[http://deploy.virtual-labs.ac.in/labs/cse12][working url]]   | [[http://coep.vlab.co.in/?sub%3D29][working url]]       |         |
+    |         | Systems Lab              |            |               |                   |         |
+    |---------+--------------------------+------------+---------------+-------------------+---------|
+    | chem01  | Chemical engineering     | IIT-B      | [[http://deploy.virtual-labs.ac.in/labs/chem01/][working url]]   | [[http://iitb.vlab.co.in/?sub%3D8&brch%3D116][working url]]       |         |
+    |---------+--------------------------+------------+---------------+-------------------+---------|
+    | bio16   | Biomedical and           | COEP       | [[http://deploy.virtual-labs.ac.in/labs/bio16/][working url]]   | [[http://coep.vlab.co.in/?sub%3D25][working url]]       |         |
+    |         | Signal processing        |            |               |                   |         |
+    |         | Laboratory               |            |               |                   |         |
+    |---------+--------------------------+------------+---------------+-------------------+---------|
+    | bio15   | Bio Reactor Modelling    | IIT-D      | [[http://deploy.virtual-labs.ac.in/labs/bio15/exp1/index.html#][working url]]   | [[http://iitd.vlab.co.in/?sub%3D63][working url]]       |         |
+    |         | and Simulation Lab       |            |               |                   |         |
+    |---------+--------------------------+------------+---------------+-------------------+---------|
+    | civil16 | Virtual Smart Structures | IIT-D      | [[http://deploy.virtual-labs.ac.in/labs/civil16/][working url]]   | [[http://ssdl.iitd.ac.in/vssdl/home.html][working url]]       |         |
+    |         | & Dynamics Laboratory    |            |               |                   |         |
+    |---------+--------------------------+------------+---------------+-------------------+---------|
+    | ece05   | Digital VLSI             | IIT-G      | [[http://deploy.virtual-labs.ac.in/labs/ece05/#][working url]]   | [[http://iitg.vlab.co.in/?sub%3D59&brch%3D165][working url]]       |         |
+    |         | Design Virtual Lab       |            |               |                   |         |
+    |---------+--------------------------+------------+---------------+-------------------+---------|
+    | ece11   | Systems, communication   | IIT-G      | [[http://deploy.virtual-labs.ac.in/labs/ece11/#][working url]]   | [[http://iitg.vlab.co.in/?sub%3D59&brch%3D163][working url]]       |         |
+    |         | and control laboratory   |            |               |                   |         |
+    |---------+--------------------------+------------+---------------+-------------------+---------|
+    | eee03   | Electronic               | IIT-G      | [[http://deploy.virtual-labs.ac.in/labs/eee03/][working url]]   | [[http://iitg.vlab.co.in/?sub%3D61&brch%3D174][working url]]       |         |
+    |         | Instrumentation          |            |               |                   |         |
+    |         | Laboratory               |            |               |                   |         |
+    |---------+--------------------------+------------+---------------+-------------------+---------|
+    | eee05   | Sensors Modelling        | COEP       | [[http://deploy.virtual-labs.ac.in/labs/eee05/#][working url]]   | [[http://coep.vlab.co.in/?sub%3D33&brch%3D91][working url]]       |         |
+    |         | and Simulations Lab      |            |               |                   |         |
+    |---------+--------------------------+------------+---------------+-------------------+---------|
+    | phy19   | Virtual Laboratory:      | IIT-K      | [[http://deploy.virtual-labs.ac.in/labs/phy19/][working url]]   | [[http://iitk.vlab.co.in/index.php?sub%3D27&brch%3D236][working url]]       |         |
+    |         | Oscillations             |            |               |                   |         |
+    |---------+--------------------------+------------+---------------+-------------------+---------|
+    | eee07   | Power Electronics        | IIT-D      | [[http://deploy.virtual-labs.ac.in/labs/eee07/#][working url]]   | [[http://iitd.vlab.co.in/?sub%3D67&brch%3D185][working url]]       |         |
+    |         | and Electric Drives      |            |               |                   |         |
+    |         | Laboratory               |            |               |                   |         |
+    |---------+--------------------------+------------+---------------+-------------------+---------|
+    | eee09   | Industrial               | COEP       | [[http://deploy.virtual-labs.ac.in/labs/eee09/#][working url]]   | [[http://coep.vlab.co.in/?sub%3D33&brch%3D93][working url]]       |         |
+    |         | Automation               |            |               |                   |         |
+    |         | Laboratory               |            |               |                   |         |
+    |---------+--------------------------+------------+---------------+-------------------+---------|
+    | eerc06  | Structural Dynamics lab  | IIIT-H     | [[http://deploy.virtual-labs.ac.in/labs/eerc06/][working url]]   | [[http://iiith.vlab.co.in/?sub%3D18&brch%3D42][working url]]       |         |
+    |---------+--------------------------+------------+---------------+-------------------+---------|
+    | eee10   | Electrical Machines      | COEP       | [[http://deploy.virtual-labs.ac.in/labs/eee10/#][working url]]   | [[http://coep.vlab.co.in/?sub%3D33&brch%3D95][working url]]       |         |
+    |---------+--------------------------+------------+---------------+-------------------+---------|
+    | mech01  | Fluid and Thermal        | IIT-G      | [[http://deploy.virtual-labs.ac.in/labs/mech01/#][working url]]   | Link is broken    |         |
+    |         | sciences                 |            |               |                   |         |
+    |---------+--------------------------+------------+---------------+-------------------+---------|
+    | eee06   | Virtual Power Lab        | Dayalbagh  | [[http://deploy.virtual-labs.ac.in/labs/eee06/exp1/index.html][working url]]   | Link is broken    |         |
+    |---------+--------------------------+------------+---------------+-------------------+---------|
+
+*** Partition 6:Labs deployed on IIIT infrastructure and =NOT= pointed to by vlab.co.in  and at L5
+
+    This table defines partition 6 and total labs are 5.
+
+    |---------+-------------------------+-----------+---------------+-------------------+---------|
+    | Lab ID  | Lab Name                | Institute | URL on deploy | URL on vlab.co.in | Uses    |
+    |         |                         |           |               |                   | LDAP/DB |
+    |---------+-------------------------+-----------+---------------+-------------------+---------|
+    | ece19   | Hybrid Electronics lab  | COEP      | [[http://deploy.virtual-labs.ac.in/labs/ece19/][working url]]   | [[http://coep.vlab.co.in/?sub%3D28&brch%3D81][working url]]       |         |
+    |---------+-------------------------+-----------+---------------+-------------------+---------|
+    | phy14   | Physical Sciences       | IIIT-H    | [[http://deploy.virtual-labs.ac.in/labs/phy14/][working url]]   | [[http://iiith.vlab.co.in/?sub%3D19&brch%3D45][working url]]       |         |
+    |---------+-------------------------+-----------+---------------+-------------------+---------|
+    | mech08  | Material Response       | IIT-K     | [[http://deploy.virtual-labs.ac.in/labs/mech08/home%20page.html][working url]]   | [[http://home.iitk.ac.in/~kbalani/vl-kb/home%20page.html][working url]]       |         |
+    |         | to Microstructural,     |           |               |                   |         |
+    |         | Mechanical, Thermal and |           |               |                   |         |
+    |         | Biological Stimuli      |           |               |                   |         |
+    |---------+-------------------------+-----------+---------------+-------------------+---------|
+    | civil15 | surveying               | IIT-R     | [[http://deploy.virtual-labs.ac.in/labs/civil15/][working url]]   | [[http://www.vlabcivil-iitr.co.in/][working url]]       |         |
+    |---------+-------------------------+-----------+---------------+-------------------+---------|
+    | chs13   | Ultrafast Laser         | IIT-K     | [[http://deploy.virtual-labs.ac.in/labs/chs13/][working url]]   | [[http://home.iitk.ac.in/~dgoswami/vlab/experiments.php][working url]]       |         |
+    |         | Virtual Lab             |           |               |                   |         |
+    |---------+-------------------------+-----------+---------------+-------------------+---------|
+
+*** Partition 4: Neither pointed to by vlab.co.in nor by virtual-labs.ac.in
+    
+    This table defines partition 4 and total labs are 26.
+
+    |----------+--------------------+---------------+---------------+-------------------+--------------------|
+    | Lab ID   | Lab Name           | Institute     | URL on deploy | URL on vlab.co.in | Remarks            |
+    |----------+--------------------+---------------+---------------+-------------------+--------------------|
+    | sample1  |                    |               | [[http://deploy.virtual-labs.ac.in/labs/sample1/#][url]]           |                   | Simple Pendulum    |
+    |----------+--------------------+---------------+---------------+-------------------+--------------------|
+    | sample2  |                    |               | [[http://deploy.virtual-labs.ac.in/labs/sample2/#][url]]           |                   | Simple Pendulum    |
+    |----------+--------------------+---------------+---------------+-------------------+--------------------|
+    | sample3  |                    |               | [[http://deploy.virtual-labs.ac.in/labs/sample3/#][url]]           |                   | Simple Pendulum    |
+    |----------+--------------------+---------------+---------------+-------------------+--------------------|
+    | sample4  |                    |               | [[http://deploy.virtual-labs.ac.in/labs/sample4/#][url]]           |                   | Simple Pendulum    |
+    |----------+--------------------+---------------+---------------+-------------------+--------------------|
+    | sample5  |                    |               | [[http://deploy.virtual-labs.ac.in/labs/sample5/#][url]]           |                   | Simple Pendulum    |
+    |----------+--------------------+---------------+---------------+-------------------+--------------------|
+    | sample6  |                    |               | [[http://deploy.virtual-labs.ac.in/labs/sample6/#][url]]           |                   | Simple Pendulum    |
+    |----------+--------------------+---------------+---------------+-------------------+--------------------|
+    | sample7  |                    |               | [[http://deploy.virtual-labs.ac.in/labs/sample7/#][url]]           |                   | Not Found          |
+    |----------+--------------------+---------------+---------------+-------------------+--------------------|
+    | sample20 |                    |               | [[http://deploy.virtual-labs.ac.in/labs/sample20/#][url]]           |                   | Simple Pendulum    |
+    |----------+--------------------+---------------+---------------+-------------------+--------------------|
+    | sample21 |                    |               | [[http://deploy.virtual-labs.ac.in/labs/sample21/#][url]]           |                   | Not Found          |
+    |----------+--------------------+---------------+---------------+-------------------+--------------------|
+    | sample22 |                    |               | [[http://deploy.virtual-labs.ac.in/labs/sample22/#][url]]           |                   | Not Found          |
+    |----------+--------------------+---------------+---------------+-------------------+--------------------|
+    | sampl13  |                    |               | [[http://deploy.virtual-labs.ac.in/labs/sample13/#][url]]           |                   | Simple Pendulum    |
+    |----------+--------------------+---------------+---------------+-------------------+--------------------|
+    | sample16 |                    |               | [[http://deploy.virtual-labs.ac.in/labs/sample16/#][url]]           |                   | Simple Pendulum    |
+    |----------+--------------------+---------------+---------------+-------------------+--------------------|
+    | temp98   |                    |               | [[http://deploy.virtual-labs.ac.in/labs/temp98/#][url]]           |                   | Simple Pendulum    |
+    |----------+--------------------+---------------+---------------+-------------------+--------------------|
+    | cse03    |                    |               | [[http://deploy.virtual-labs.ac.in/labs/cse03/#][url]]           |                   | Not Found          |
+    |----------+--------------------+---------------+---------------+-------------------+--------------------|
+    | cse25    |                    | IIIT-H        | [[http://deploy.virtual-labs.ac.in/labs/cse25][url]]           |                   | Not Found          |
+    |----------+--------------------+---------------+---------------+-------------------+--------------------|
+    | cse26    |                    | IIIT-H        | [[http://deploy.virtual-labs.ac.in/labs/cse26][url]]           |                   | Not Found          |
+    |----------+--------------------+---------------+---------------+-------------------+--------------------|
+    | cse27    |                    |               | [[http://deploy.virtual-labs.ac.in/labs/cse27][url]]           |                   | Not Found          |
+    |----------+--------------------+---------------+---------------+-------------------+--------------------|
+    | ece26    |                    | Dayalbagh     | [[http://deploy.virtual-labs.ac.in/labs/ece06/][url]]           |                   | Simple Pendulum    |
+    |----------+--------------------+---------------+---------------+-------------------+--------------------|
+    | ece09    |                    |               | [[http://deploy.virtual-labs.ac.in/labs/ece09][url]]           |                   | Simple Pendulum    |
+    |----------+--------------------+---------------+---------------+-------------------+--------------------|
+    | cse02-CP | computer           | IIIT-H        | [[http://deploy.virtual-labs.ac.in/labs/cse02-CP/#][url]]           |                   | responsive version |
+    |          | programming        |               |               |                   |                    |
+    |----------+--------------------+---------------+---------------+-------------------+--------------------|
+    | ece02    |                    |               | [[http://deploy.virtual-labs.ac.in/labs/ece02][url]]           |                   | Not Found          |
+    |----------+--------------------+---------------+---------------+-------------------+--------------------|
+    | ece04    | NFS Lab            | IIT-B         | [[http://deploy.virtual-labs.ac.in/labs/ece04/][url]]           | Not Found         |                    |
+    |----------+--------------------+---------------+---------------+-------------------+--------------------|
+    | civil09  |                    |               | [[http://deploy.virtual-labs.ac.in/labs/civil09][url]]           |                   |                    |
+    |----------+--------------------+---------------+---------------+-------------------+--------------------|
+    | eee08    |                    |               | [[http://deploy.virtual-labs.ac.in/labs/eee08][url]]           |                   |                    |
+    |----------+--------------------+---------------+---------------+-------------------+--------------------|
+    | sc01     |                    |               | [[http://deploy.virtual-labs.ac.in/labs/sc01/#][url]]           | Not Found         |                    |
+    |----------+--------------------+---------------+---------------+-------------------+--------------------|
+    | engg01   |                    |               | [[http://deploy.virtual-labs.ac.in/labs/engg01/][url]]           | Not Found         |                    |
+    |----------+--------------------+---------------+---------------+-------------------+--------------------|
+    | ece06    | Digital Signal     | IIT-Kharagpur | [[http://deploy.virtual-labs.ac.in/labs/ece06/][url]]           | [[http://www.digital.iitkgp.ernet.in/dsp/][working url]]       |                    |
+    |          | Processing Virtual |               |               |                   |                    |
+    |          | Laboratory         |               |               |                   |                    |
+    |----------+--------------------+---------------+---------------+-------------------+--------------------|
+
+*** Partition 3: Labs pointed by vlab.co.in and =NOT= hosted at deploy but at L5
+    This table defines partition 3
+*** Partition 7: Labs pointed by vlab.co.in and =NOT= hosted on deploy and =NOT= at L5
+    This table defines partition 7
+
+* Plan
+** Labs in Partition 2
+   For labs in partition 2 do the following:
+   1. After AWS platform is ready, deploy the labs in partition 2 on
+      AWS. This will be done as part of May 1st deadline.
+   2. Edit the link for each lab on vlab.co.in and point it to this
+      new public url.
+** Labs in Partition 1
+   For labs in partition 1 do the following:
+   1. Deploy all the labs in partition 1 in seperate contianers.
+   2. Make each lab accessible by a public url.
+   3. Edit the link for each lab on vlab.co.in and point it to this
+      new public url.
+   4. For broken labs, set up a meeting to chalk out different strategies.
+** Labs in Partition 5
+  1. For the labs with broken links on vlab.co.in, deploy them on independent
+     containers.
+  2. Make each lab accessible by a public url.
+  3. Edit the link for each lab on vlab.co.in and point it to this new public
+     url.
+** Labs in Partition 6
+  1. The 'request for hosting' has been made for them, and they will be hosted
+     as part May 1st deadline.
+* Meeting minutes
+** Meeting on [2015-04-08 Wed]
+*** Introduction
+   Professor along with Geeta, Apurv, Sravanthi participated in
+   outreach the whole day. They came back with feedback and wanted to
+   discuss on availability of the labs on deploy container. This
+   meeting was held on [2015-04-08 Wed]
+
+*** Attendees
+   Apurv, Saurabh, Geeta(half time), Soumya(quarter time)Thirumal,
+   Venkatesh, Zubair
+
+*** Duration
+   18.05 to 20.08
+
+*** Observations 
+ - Professor wanted to know the issue with deploy container and how to
+   fix it.
+ - Saurabh explained the cause of the issue and when was it discovered
+   and documented, possible solutions.
+ - Professor suggested find the labs which might be causing this
+   issue.
+ - Saurabh presented the current task list for the deadlines in April,
+   May and how adding new tasks will affect other tasks.
+
+* Implementation 
+  After a rigorous discussion: Soumya,Shiva,Sanchita and Zubair
+  planned for the process to be carried out as described below.
+  (10:50 a.m.-11:50 a.m.)
+
+** Possible options
+   This section describes the different options that we have in
+   implementing the deploy clean up.
+*** Naming convention of URL for Lab
+    - <lab id>-<institute name>.virtual-labs.ac.in
+    - <short form of lab name>.virtual-labs.ac.in
+    - deploy.virtual-labs.ac.in/<lab-id>
+*** Base machines
+    - Base 2
+    - Base 3
+** Decisions
+*** Naming convention of URL for Lab
+    To decide which naming convention would suite the best we need to
+    consider several factors.
+    - Reverse Proxy entries(Virtual hosts)
+    - Awstats (the configuration file)
+    - Logs (location, for each lab)
+    All the above factors are interdependent. The main focus is on
+    Awstats. 
+      + The analytics should not be lost during the clean up
+        process. The awstats requires the correct log files to display
+        the statistics. If the log file is changed all the current
+        statistics till date will not be displayed on the awstats
+        GUI.
+      + Also the log file location and name specified in the virtual
+        host entry on the Reverse proxy must be the same in the
+        "awstats.<lab-id>.conf" file.
+    Having two different virtual hosts to point to a single log file
+    is possible.  Hence, to make things simpler, it was decided that
+    the "<lab-id>-<institute-name>.virtual-labs.ac.in" naming
+    convention would be followed. Each lab will have a separate Virtual-host
+    entry. Only the access-log name and location, will follow the same
+    convention as that in the "awstats.<lab-id>.conf" file. This
+    allows the new statistics to be displayed, without the old ones
+    being lost.
+*** Base Machines
+    There is more space in the Base3 as compared to Base2 machine
+    hence it was decided that the containers will be created on Base3.
+** Procedure
+   + Total of 31 labs have been identified which have to be deployed in separate
+     containers. Out of 31, 26 labs are in partition 1 and rest in partition 5 which
+     are been focussed on.
+   + All the labs are to be deployed in Base3 machine, each in separate container.
+   + After creating the containers in Base3, reverseproxy entries would be added.
+   + Following the above step, private DNS entries and public DNS entries would be added.
+   + Checking all the labs whether they are working by opening their URLs in browser.
+   + Enabling the Awstats which would provide the current satistics of the running labs.
+   + Informing Amritha University (as labs would now be pointing to vlabs.co.in ) coordinators regarding the 
+     inclusion of these links.
+   + Updating VLEAD Wiki with the detailed process of the deployment in Base3 for all the above mentioned labs.
+   
+** Impediments and Issues
+*** Partition 1
+    There are 3 labs which have broken links. When the problem leading
+    to the unavailability of these labs was looked into, the following
+    observations were made:
+    - The sources of Virtual Satellite Image processing Lab (civil11)
+      from IIT Bombay are not present on the deploy container. There
+      is a separate Reverse Proxy entry ( a virtual host ) but the
+      link mentioned doesnt work. Because there is a separate reverse
+      proxy entry there should be a DNS entry too, which is
+      missing. On further investigation it was found that this lab was
+      a windows VM running on base1 machine.
+       - Update :: civil11_backup present on base2 is the actual
+                   production windows VM.  The name _backup is
+                   confusing but this is the real production VM.
+    - The Reverse proxy entry of the Software engineering lab (cse08)
+      points to a URL which is not hosted by IIIT infrastructure. That
+      link works. There is a separate container on Base2 to which the
+      private DNS entry points (10.4.12.180, ctid-12180). When the IP
+      of this container is used to open the lab on the browser, it
+      shows the default "It works" page. The lab sources on this
+      container are not placed in the proper location. The sources are
+      not present on deploy container either.
+       - Update :: Consider this lab to be in partition 4 (not pointed
+                   by virtual-labs.ac.in and not pointed by
+                   vlab.co.in) unless vlab.co.in points to us and then
+                   we redirect somewhere else.  In that case give the
+                   URL where reverseproxy requests are sent to
+                   vlab.co.in so that requests from college users
+                   directly go to place where labs are hosted.  At the
+                   end the lab can be deleted considering it never
+                   existed, same as all other labs of partition 4.
+    - There Reverse Proxy entry for the Advanced Network Technologies
+      lab (cse28) points to a URL which is not hosted by the IIIT
+      infrasctructure. That link works. There is DNS entry for this
+      lab which points to the same cotainer as above (10.4.12.180,
+      ctid-12180). The sources are not available on deploy container.
+      - Update :: Same as above.  Treat as part of partition 4.  Get
+                  links changed on vlab.co.in as necessary.
+    - Labs (which are deployed on separate containers on base3 so far
+      ) are redirecting to deploy container for simulations. This was
+      noticed when the labs were being checked if they worked fine
+      after the deployment process. The labs having these issues are:
+      + cse30-iiith.virtual-labs.ac.in (issue resolved)
+      + cse17-iiith.virtual-labs.ac.in (issue resolved)
+      + cse21-iiith.virtual-labs.ac.in (issue resolved)
+      - Update :: Sources from which these labs were cloned into thier
+                  respective containers:
+                  - cse30 :: https://github.com/Virtual-Labs/analog-cmos-vlsi-circuit-design-iiith
+                  - cse21 :: https://github.com/Virtual-Labs/optical-remote-sensing-iiith
+                  - cse17 :: https://github.com/Virtual-Labs/mobile-robotics-iiith
+
+*** IIT Bombay, civil 13 lab status 
+
+    A container was created for this lab (CTID 12069) and the basic
+    dependencies were installed (php, Apache). The sources were copied
+    form deploy container into this container. The lab has "mysql"
+    dependency for which the steps for deployment were not
+    available. Hence, this lab was not deployed the way it should.  A
+    mail was sent to Pushpdeep asking the process for redeploying of
+    this lab. In his reply he clearly mentioned to keep the
+    redeployment process on hold because the lab needed to be verified
+    by experts.  So, the public url of the container was not sent to
+    vlab.co.in and deploy was decommissioned leaving the lab
+    temporarily unavailable. The lab can however, be accessed from the
+    container public URL (civil13-iitb.virtual-labs.ac.in) but may not
+    work according to the developer's design.
+    
+    A request was sent by Pushpdeep to send the sources of the lab
+    that VLEAD had so that he can bring the lab to L6. The sources
+    were sent.
+
+** Container Ids and IPs 
+   The table lists the container ids and the IP addresses used to
+   deploy the labs.
+   <<Labs to be sent to vlab.co.in>>
+|------+-------+------------+----------------------------------|
+| S.no |  CTID |         IP | Hostname                         |
+|------+-------+------------+----------------------------------|
+|    1 | 12052 | 10.4.12.52 | cse04-iiith.virtual-labs.ac.in   |
+|    2 | 12053 | 10.4.12.53 | cse05-iiith.virtual-labs.ac.in   |
+|    3 | 12054 | 10.4.12.54 | cse06-iiith.virtual-labs.ac.in   |
+|    4 | 12055 | 10.4.12.55 | cse07-iiith.virtual-labs.ac.in   |
+|    5 | 12056 | 10.4.12.56 | cse09-iiith.virtual-labs.ac.in   |
+|    6 | 12057 | 10.4.12.57 | cse13-iiith.virtual-labs.ac.in   |
+|    7 | 12058 | 10.4.12.58 | cse16-iiith.virtual-labs.ac.in   |
+|    8 | 12059 | 10.4.12.59 | cse17-iiith.virtual-labs.ac.in   |
+|    9 | 12060 | 10.4.12.60 | cse21-iiith.virtual-labs.ac.in   |
+|   10 | 12061 | 10.4.12.61 | cse24-iiith.virtual-labs.ac.in   |
+|   11 | 12062 | 10.4.12.62 | cse30-iiith.virtual-labs.ac.in   |
+|   12 | 12064 | 10.4.12.64 | eerc02-iiith.virtual-labs.ac.in  |
+|   13 | 12065 | 10.4.12.65 | eerc04-iiith.virtual-labs.ac.in  |
+|   14 | 12066 | 10.4.12.66 | eerc05-iiith.virtual-labs.ac.in  |
+|   15 | 12067 | 10.4.12.67 | cse10-iitkgp.virtual-labs.ac.in  |
+|   16 | 12068 | 10.4.12.68 | cse23-iiith.virtual-labs.ac.in   |
+|   17 | 12069 | 10.4.12.69 | civil13-iitb.virtual-labs.ac.in  |
+|   18 | 12070 | 10.4.12.70 | ccnsb01-iiith.virtual-labs.ac.in |
+|   19 | 12071 | 10.4.12.71 | ccnsb02-iiith.virtual-labs.ac.in |
+|   20 | 12072 | 10.4.12.72 | ccnsb03-iiith.virtual-labs.ac.in |
+|   21 | 12073 | 10.4.12.73 | ccnsb04-iiith.virtual-labs.ac.in |
+|   22 | 12074 | 10.4.12.74 | ccnsb05-iiith.virtual-labs.ac.in |
+|   23 | 12075 | 10.4.12.75 | ccnsb07-iiith.virtual-labs.ac.in |
+|   24 | 12079 | 10.4.12.79 | mech01-iitg.virtual-labs.ac.in   |
+|   25 | 12080 | 10.4.12.80 | eee06-dei.virtual-labs.ac.in     |
+|------+-------+------------+----------------------------------|
+
+** Status
+- [2015-05-05 Tue] :
+
+- A total of *24* labs from deploy container were deployed on separate
+  containers and their public urls were updated on vlab.co.in
+- A total of *25* labs were deployed on AWS and their public urls
+  updated on vlab.co.in.
+- virtual-labs.ac.in redirected to vlab.co.in
+- deploy container stopped.
+
+* Work Plan
+** DONE Take decisions (see here [[Decisions]]) on how to name labs and which base machine to deploy them [2015-04-14 Tue]
+** DONE Team discussion to plan a [[Procedure]] [2015-04-14 Tue]
+** DONE Decide the IP range [2015-04-14 Tue]
+** DONE Creation of 23 containers (from Partition 1) on base3 [2015-04-14 Tue]
+** DONE copy the lab sources from Deploy to the corresponding container [2015-04-14 Tue]
+** DONE Add entries in Reverse Proxy [2015-04-14 Tue]
+** DONE Add Private and Public DNS entries [2015-04-15 Wed]
+** DONE Add awstats entries [2015-04-15 Wed]
+** DONE Complete configuration of Awstats [2015-04-15 Wed]
+** DONE complete the entries in the wiki [2015-04-15 Wed]
+** DONE Examine the issues with the non working labs in Partition 1 [2015-04-15 Wed]
+** DONE Examine the issues for the broken links in Partition 5 [2015-04-15 Wed]
+** DONE Complete the documentation [2015-04-15 Wed]
+** DONE 3 Lab experiments still redirect to the deploy container. 2 have been resolved. 1 still remains.
+        - This has been resolved. Now all the three labs work and do
+          not point to deploy container.
+** TODO Configure Rsnapshot for all the newly created containers [2015-04-15 Wed]
+        - Requires input on which ones the backup should be taken for.
+** DONE Inform vlab.co.in to point to these labs
+** DONE Get access to vlab.co.in [Geeta is looking into it] [[https://bitbucket.org/vlead/systems/issue/18][issue 18 bitbucket]]
+** TODO Redirect the virtual-labs.ac.in to vlab.co.in 
+        When a user requests virtual-labs.ac.in he should be
+        redirected to vlab.co.in. 
+        - All labs on IIIT infrastructure need to be pointed by
+          vlab.co.in. 
+        - All the links have to be checked. check if they point to
+          deploy. If they are we need to take action and point them to
+          the proper place. (done)
+        - The list of [[labs to be sent to vlab.co.in]] should be
+          prepared.
+
+    
